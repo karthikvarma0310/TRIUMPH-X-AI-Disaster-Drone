@@ -1,172 +1,479 @@
-TRIUMPH X — AI Disaster Detection, Early Warning & Search-Rescue Drone
+TRIUMPH X — AI-Powered Disaster Detection, Early Warning & Search-and-Rescue Drone
 
-A college/SIH prototype for an autonomous drone platform that can:
+Team: TRIUMPH X
+SIH 2026 Problem Statement ID: SIH26177
+Theme: Robotics and Drones
+Category: Hardware
 
-Detect landslide warning indicators from camera imagery.
+Overview
 
-Estimate a simple risk level and map the suspected affected zone.
+TRIUMPH X is a student/SIH prototype for an autonomous drone-based disaster-response platform. The concept extends the original search-and-rescue problem with a preventive landslide-indicator monitoring and early-warning module.
 
-Raise timely alerts for registered residents/authorities through a pluggable alert module.
+The prototype is designed around this workflow:
 
-Detect people and hazards after a disaster and show GPS-tagged events on a web dashboard.
+Monitor → Capture → AI Analysis → Risk Assessment → GPS Location
+       → Affected-Zone Estimate → Alert → Dashboard → Response
 
-This repository is a prototype/starter implementation, not a safety-certified landslide prediction system. A real deployment needs validated geotechnical models, reliable sensors, communications redundancy, field calibration, emergency-management integration, and regulatory approval.
+The platform has two complementary use cases:
+
+Before a disaster: monitor vulnerable terrain and flag visual indicators that may require attention or an early-warning workflow.
+
+During/after a disaster: support search and rescue by detecting people and recording location-tagged events.
+
+Prototype limitation: This repository is not a safety-certified landslide prediction or emergency-warning system. The current landslide detector uses lightweight computer-vision heuristics. Its risk score and affected-zone radii are demonstration values and must not be used for real evacuation or rescue decisions.
+
+Problem Context
+
+Disaster-response teams may need rapid situational awareness over large, remote, flooded, mountainous or otherwise hard-to-reach areas. The project aims to use an autonomous drone, computer vision, GPS and a dashboard to convert aerial observations into actionable information for responders.
+
+The landslide extension adds a preventive layer: when the image-analysis module detects configured visual indicators, the system can raise a high/critical demonstration alert and show the suspected location on the dashboard.
+
+Core Capabilities
+
+Landslide-indicator analysis
+
+Implemented in ai/landslide_detection.py.
+
+The current prototype analyzes a still image with OpenCV and calculates:
+
+a ground-crack proxy from image edge density
+
+a debris-texture proxy from grayscale texture variation
+
+The function returns a demonstration risk score, risk level, detected indicators and confidence values.
+
+These are visual proxies only. They are not measurements of soil stability, ground displacement or true landslide probability.
+
+Risk assessment
+
+Implemented in ai/risk_assessment.py.
+
+The prototype exposes a simple fusion function for:
+
+visual score
+
+rainfall index
+
+movement index
+
+Rainfall and movement are currently integration inputs rather than live sensor streams. The weights in the code are prototype values and are not geotechnically validated.
+
+Person detection
+
+Implemented in ai/person_detection.py.
+
+The module provides an optional Ultralytics YOLO integration point. A compatible model file must be supplied separately at:
+
+models/person_model.pt
+
+The repository does not include model weights.
+
+GPS and affected-zone estimation
+
+Implemented in gps/location_tracker.py.
+
+The module provides:
+
+GPSPoint for latitude/longitude values
+
+Haversine distance calculation
+
+a demonstration affected-zone radius selected from the risk level
+
+Current prototype radii are:
+
+Risk level
+
+Demo radius
+
+LOW
+
+100 m
+
+MEDIUM
+
+200 m
+
+HIGH
+
+350 m
+
+CRITICAL
+
+500 m
+
+These are not validated evacuation boundaries.
+
+Alerts
+
+Implemented in alerts/alert_service.py and alerts/twilio_adapter.py.
+
+The default configuration is:
+
+ALERT_MODE=mock
+
+In mock mode, the warning is printed to the terminal. An optional Twilio adapter is included as an integration point for SMS alerts using the team's own authorized credentials and recipient numbers.
+
+No live public-warning infrastructure is included in this repository.
+
+Web dashboard
+
+Implemented in:
+
+dashboard/app.py
+dashboard/templates/index.html
+dashboard/static/app.js
+
+The Flask dashboard displays prototype state including GPS position, risk level, risk score, detected indicators, affected-zone radius, alert status and recent events.
+
+Available routes:
+
+GET  /
+GET  /api/state
+POST /api/analyze
+POST /api/demo
+
+Drone navigation placeholders
+
+Implemented in:
+
+drone/flight_control.py
+drone/waypoint_navigation.py
+
+The current functions are simulation/placeholders. They do not connect to a real flight controller. The navigation module can generate simple lawnmower-style waypoint coordinates, while flight-control functions return simulation messages.
+
+The SIH presentation identifies ArduPilot/PX4 as the intended integration direction for future hardware integration.
 
 Architecture
 
-             DRONE CAMERA / TEST IMAGE
-                       |
-                       v
-                AI INFERENCE LAYER
-              /                     \
-     Person/Vehicle              Landslide Indicators
-       Detection                 (prototype CV rules)
-              \                     /
-               +--------+-----------+
-                        |
-                  GPS + Risk Engine
-                        |
-                Affected-Zone Map
-                        |
-                +-------+--------+
-                |                |
-           Alert Service      Dashboard
-          SMS / Mock Alert   Flask Web UI
+                  DRONE / TEST IMAGE
+                          |
+                          v
+                   AI ANALYSIS LAYER
+                 /                    \
+                /                      \
+    Landslide indicators           Person detection
+      (prototype CV)               (optional YOLO)
+                \                      /
+                 \                    /
+                  +--------+---------+
+                           |
+                           v
+                     Risk assessment
+                           |
+                           v
+                    GPS / location
+                           |
+                           v
+                  Affected-zone estimate
+                      /            \
+                     /              \
+                    v                v
+              Alert service      Web dashboard
+             mock / optional SMS     Flask
 
-Repository structure
+Repository Structure
 
 TRIUMPH-X-Disaster-Drone/
 ├── ai/
+│   ├── __init__.py
 │   ├── landslide_detection.py
 │   ├── person_detection.py
 │   └── risk_assessment.py
 ├── alerts/
+│   ├── __init__.py
 │   ├── alert_service.py
 │   └── twilio_adapter.py
 ├── dashboard/
+│   ├── __init__.py
 │   ├── app.py
-│   ├── templates/index.html
-│   └── static/app.js
+│   ├── static/
+│   │   └── app.js
+│   └── templates/
+│       └── index.html
 ├── drone/
+│   ├── __init__.py
 │   ├── flight_control.py
 │   └── waypoint_navigation.py
 ├── gps/
+│   ├── __init__.py
 │   └── location_tracker.py
 ├── models/
 │   └── README.md
-├── data/sample_images/
+├── data/
+│   └── sample_images/
+│       └── README.md
 ├── scripts/
 │   └── demo.py
-├── requirements.txt
 ├── .env.example
+├── .gitignore
+├── requirements.txt
 └── README.md
 
-1. Setup
+Technology Stack
 
-Python 3.10+ is recommended.
+Python — application and prototype logic
+
+OpenCV — image processing and visual heuristics
+
+NumPy — numerical image operations
+
+Flask — web dashboard and API
+
+python-dotenv — environment-variable loading
+
+Ultralytics YOLO — optional person-detection integration
+
+GPS coordinate calculations — location and distance handling
+
+ArduPilot/PX4 — planned flight-controller integration direction
+
+Twilio — optional SMS integration point
+
+Installation
+
+1. Clone the repository
+
+git clone https://github.com/YOUR-USERNAME/TRIUMPH-X-AI-Disaster-Drone.git
+cd TRIUMPH-X-AI-Disaster-Drone
+
+Replace YOUR-USERNAME with your GitHub username.
+
+2. Create a virtual environment
+
+Windows
 
 python -m venv .venv
-# Windows
-.venv\\Scripts\\activate
-# Linux/macOS
+.venv\Scripts\activate
+
+Linux/macOS
+
+python3 -m venv .venv
 source .venv/bin/activate
+
+3. Install dependencies
 
 pip install -r requirements.txt
 
-Copy environment settings:
+The requirements.txt file contains Flask, python-dotenv, OpenCV, NumPy and an optional Ultralytics dependency.
+
+4. Configure environment variables
+
+Copy .env.example to .env.
+
+Windows:
 
 copy .env.example .env
 
-or on Linux/macOS:
+Linux/macOS:
 
 cp .env.example .env
 
-2. Run the dashboard
+The default alert mode is mock mode, so the basic demo does not require Twilio credentials.
+
+Run the Dashboard
+
+From the repository root:
 
 python dashboard/app.py
 
-Open http://127.0.0.1:5000.
+Open:
 
-The dashboard includes:
+http://127.0.0.1:5000
 
-current GPS position
+The application uses port 5000 and binds to 0.0.0.0 when started through dashboard/app.py.
 
-landslide risk level
+Run a Demonstration Event
 
-detected indicators
+The dashboard includes a demonstration endpoint:
 
-affected-zone radius
+POST /api/demo
 
-alert status
+It accepts one of:
 
-rescue/landslide event history
+LOW
+MEDIUM
+HIGH
+CRITICAL
 
-3. Run the command-line demo
+Example JSON body:
+
+{
+  "level": "HIGH"
+}
+
+For HIGH and CRITICAL, the default mock alert is triggered.
+
+Analyze an Image
+
+The dashboard exposes:
+
+POST /api/analyze
+
+Upload an image using the multipart field name:
+
+image
+
+The endpoint runs the current OpenCV-based landslide-indicator heuristic and updates the dashboard state.
+
+For a local test image, place an image in:
+
+data/sample_images/
+
+and run:
 
 python scripts/demo.py
 
-This simulates a drone observation, evaluates risk and produces an alert event without requiring a physical drone or a trained model.
+The command-line demo uses the first file found in that directory. The repository intentionally does not include a specific real-world landslide image dataset.
 
-4. AI model integration
+Optional Person Detection
 
-The current landslide module intentionally uses a prototype image-analysis heuristic so the repository can run immediately. For a real AI model, replace or extend it with a trained segmentation/object-detection model.
+The person detector imports Ultralytics only when called. After supplying a compatible model at:
 
-For person detection, the repository supports Ultralytics YOLO when a model file is available.
+models/person_model.pt
 
-Example:
+you can run:
 
 from ai.person_detection import detect_people
-result = detect_people("frame.jpg", model_path="models/person_model.pt")
+
+result = detect_people(
+    "path/to/frame.jpg",
+    model_path="models/person_model.pt"
+)
+
 print(result)
 
-Recommended future model labels
+Model weights should not be committed unless their license and repository size requirements permit it.
 
-landslide_crack
-soil_displacement
-rockfall_debris
-water_seepage
-blocked_road
-person
-vehicle
+Optional SMS Alerts
 
-5. Alert workflow
+The Twilio adapter is optional. The default .env setting is:
 
-AI observation
-     ↓
-Risk assessment
-     ↓
-GPS coordinate
-     ↓
-Affected radius
-     ↓
-Alert message
-     ↓
-Registered residents + authorities
+ALERT_MODE=mock
 
-The default alert adapter is a console/mock adapter, which is safe for demonstration. A Twilio adapter is included as an optional integration point and must be configured with your own credentials.
+To use the Twilio integration, install the Twilio package separately and configure:
 
-6. Suggested college prototype
+ALERT_MODE=twilio
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_NUMBER=
+ALERT_TO_NUMBERS=
 
-You can demonstrate the complete concept with:
+Keep credentials in .env. Do not commit secrets to GitHub.
 
-small drone or RC aircraft/camera
+SIH Exhibition Prototype
 
-Raspberry Pi or laptop for processing
+A simple controlled demonstration can use:
 
-GPS module (or simulated coordinates)
+a small drone/RC aircraft or camera setup
 
-USB/RGB camera
+RGB/USB camera
 
-optional thermal camera
+laptop or Raspberry Pi for processing
+
+optional GPS module
 
 Flask dashboard
 
-buzzer/LED for local warning
+buzzer/LED for local demonstration
 
-mock SMS alert for the exhibition
+a model hill made from cardboard/soil
 
-A simple physical demo can use a model hill made from cardboard/soil. Add artificial cracks and loose debris, capture the scene, and trigger the risk engine.
+A safe exhibition flow is:
 
-Safety / scope note
+Model terrain / test image
+          ↓
+Camera capture
+          ↓
+Prototype image analysis
+          ↓
+Risk level
+          ↓
+GPS coordinate
+          ↓
+Demo affected-zone radius
+          ↓
+Mock warning
+          ↓
+Dashboard display
 
-Do not present the prototype risk score as a guaranteed prediction of a real landslide. The current implementation is intended for demonstration of the software workflow. Production warning decisions should incorporate validated geotechnical measurements such as rainfall, soil moisture, slope deformation and ground movement, together with local disaster-management procedures.
+For the rescue portion, a controlled image containing people can be passed to the optional YOLO module after a compatible model is supplied.
+
+What Is Prototype vs. Future Work?
+
+Implemented in this repository
+
+OpenCV-based landslide-indicator heuristic
+
+Demonstration risk-level calculation
+
+Prototype affected-zone radius mapping
+
+GPS coordinate utilities
+
+Mock alert generation
+
+Optional Twilio SMS adapter
+
+Optional YOLO person-detection integration
+
+Flask dashboard and API routes
+
+Simulated drone takeoff/return-to-home functions
+
+Simple lawnmower waypoint generation
+
+Planned / future development
+
+Trained and field-validated landslide model
+
+Terrain segmentation and multi-frame change detection
+
+Rainfall, soil-moisture and ground-movement sensors
+
+Terrain elevation and slope information
+
+Validated geotechnical risk model
+
+Real-time drone telemetry
+
+Direct ArduPilot/PX4 hardware integration
+
+Thermal-image fusion for victim detection
+
+Production-grade communications and emergency-management integration
+
+Authority-approved alert and evacuation procedures
+
+Limitations and Safety
+
+The current project is a student prototype. Specifically:
+
+Image edge density and texture are only proxies for possible visual indicators.
+
+The current risk thresholds are prototype rules.
+
+The affected-zone radius is a demonstration value, not an evacuation boundary.
+
+Rainfall and movement inputs are not connected to live sensors in this starter repository.
+
+Drone flight functions are simulation placeholders.
+
+The alert system is not a public emergency-warning service.
+
+No claim is made that the system can guarantee landslide prediction, victim detection, or safe autonomous flight.
+
+Any real deployment would require domain validation, appropriate sensing, communications redundancy, flight safety procedures, regulatory compliance and integration with responsible disaster-management authorities.
+
+License
+
+No open-source license is currently specified in this repository.
+
+Unless the team adds a license, reuse and redistribution of original code should not be assumed to be permitted. Add a license only after deciding how the project should be shared.
+
+Team
+
+TRIUMPH X
+Smart India Hackathon 2026
+
+Project title: AI-Powered Autonomous Disaster Detection, Early Warning & Search-and-Rescue Drone
